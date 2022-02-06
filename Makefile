@@ -1,8 +1,8 @@
 CC=gcc
 
-all:	fits
+all:	yafits
 
-fits:  main.o fitsfile.o fitsheader.o fitsdata.o topng.o fitsimage.o
+yafits:  main.o fitsfile.o fitsheader.o fitsdata.o topng.o fitsimage.o
 		$(CC) -o $@ -Wall -O3 -lpng $^
 
 fitsimage.o: fitsimage.c fitsimage.h fits.h
@@ -26,5 +26,7 @@ main.o: main.c fits.h
 
 clean:
 	rm -f *.o
+	rm -f yafits
+	rm -f *.gch
 
 

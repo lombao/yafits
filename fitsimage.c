@@ -230,8 +230,7 @@ void __FITS_Image_measure_center (  TFitsImage * image ) {
 		}
 	}
 			
-    printf("El record fue de %d\n",r);
-	printf("Coordenadas: %d %d\n",coordx,coordy);	
+
 	image->starcenterlux =  __FITS_recursive_clean_star ( newimage, coordx,coordy );
 	image->starcentermax = r;
 }

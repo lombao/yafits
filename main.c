@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <getopt.h>
 #include <unistd.h> 
 
 #include "fits.h"
@@ -31,7 +32,7 @@
 #include "topng.h"
 
 
-#define YAFITSL_VERSION "0.0.1"
+#define YAFITSL_VERSION "0.0.2"
 
 #define MAX_SIZE_FILE_NAME 512
 
@@ -44,14 +45,15 @@ void showUsage();
 /* Print usage */
 void showUsage() {
 	  
-	 fprintf(stderr,"Yet Another FITS Library. Version %s\n",YAFITSL_VERSION); 
-	 fprintf(stderr,"Usage: yafitsl [-h] [-H] [-I] [-O] <filename>  \n");
-	 fprintf(stderr,"	-h:  Show Help ( this help )\n");
-	 fprintf(stderr,"	-H:  Dump headers\n");
-	 fprintf(stderr,"	-I:  Print image characteristics\n");
-	 fprintf(stderr,"	-O:  Convert to a png file\n");	 
-	 fprintf(stderr,"	<file>:  Upload fits file\n");
+	  
+	 fprintf(stderr,"\nYet Another FITS Library. Version %s\n",YAFITSL_VERSION); 
+	 fprintf(stderr,"Usage: yafits [-h|--help] [-e|--export <format>] [ H | --headers ] <fitsfile>  \n");
+	 fprintf(stderr,"	[-h|--help]           :  Show this Help \n");
+	 fprintf(stderr,"	[-e|--export] <format>:  Export the image into one of these formats: [ png ]\n");
+	 fprintf(stderr,"	[-H|--headers]        :  Dump all the header keys of the primary Header Unit\n");
+	 fprintf(stderr,"	<fitsfile>            :  The files file to process\n");
 	 
+	 	 fprintf(stderr,"\n\n");
 }
 
 
@@ -64,41 +66,70 @@ int main(int argc, char *argv[]) {
 
 
   int opt;
-  int optionH=0; int optionO=0; int optionI = 0;
+
   char filename[MAX_SIZE_FILE_NAME];
-  char pngfilename[MAX_SIZE_FILE_NAME+5];
+
+  
+  #define MAX_EXPORT_FORMAT_NAME 10
+  char exportFormat[MAX_EXPORT_FORMAT_NAME];
   
   TFitsImage * image;
   
+  int flagHelp = 0;	
+  int flagExport = 0;
+  int flagHeaders = 0;
   	
-	while ((opt = getopt(argc, argv, "hHIO")) != -1) {
+  struct option longopts[] = {
+   { "export",      required_argument,		NULL,   	'e'   },
+   { "help",    	no_argument,       		NULL,    	'h'  },
+   { "headers",    	no_argument,       		NULL,    	'H'  },
+   { 0, 0, 0, 0 }
+  };
+  	
+  	
+	while ((opt = getopt_long(argc, argv, "Hhe:",longopts,NULL)) != -1) {
         switch (opt) {
-        case 'H':
-			optionH = 1;     	     
-            break;  
-        case 'O':  
-            optionO = 1;
-            break;     
-        case 'I':  
-            optionI = 1;
-            break;      
-        case 'h': /* Show version and quit */
-            showUsage();
-            exit(EXIT_SUCCESS);
+   
+        case 'h': /* Show Help & version and quit */
+            flagHelp = 1;
             break;
-        case 'v': /* Show version and quit */
-            showUsage();
-            exit(EXIT_SUCCESS);
-            break;    
-        default: /* '?' */
-            showUsage();
-            exit(EXIT_FAILURE);
-        }
+            
+        case 'H': /* Dump Headers */
+            flagHeaders = 1;
+            break;
+         
+        case 'e': /*Export */
+			flagExport = 1;
+			strncpy(exportFormat,optarg,MAX_EXPORT_FORMAT_NAME);
+			exportFormat[MAX_EXPORT_FORMAT_NAME-1]=0x0;
+			break;
+				
+		case ':':   /* missing option argument */
+			fprintf(stderr, "ERROR: option `-%c' requires an argument\n", optopt);
+			exit(EXIT_FAILURE);
+			break;
+		
+		
+		
+		case '?':
+		default:    /* invalid option */
+			fprintf(stderr, "ERROR: option `-%c' is invalid: ignored\n", optopt);
+			exit(EXIT_FAILURE);
+			break;
+        
+	  }
   }
   
+  /* If help, then show and quit */
+  if ( flagHelp ) {
+	  showUsage();
+	  exit(EXIT_SUCCESS);
+  }
+  
+ 
+  /* If not file given, then quit */
   if (argc==optind) { 
-	 fprintf(stderr, "\n    ERROR::: No fits image file given \n\n");
-	 showUsage();
+	 fprintf(stderr, "ERROR::: No fits image file given \n\n");
      exit(EXIT_FAILURE);
   } 
   
@@ -107,6 +138,7 @@ int main(int argc, char *argv[]) {
   filename[MAX_SIZE_FILE_NAME-1] = 0x0;
   
 
+  /* Upload and pre-process the image */
   image = FITS_File_Image_Upload(filename);
   FITS_Header_Parse ( image );
   FITS_Data_Parse(  image );
@@ -115,19 +147,22 @@ int main(int argc, char *argv[]) {
   
   
   
-  if ( optionH ) {
-	FITS_HEADERS_Print( image );
+  if ( flagHeaders ) {
+	  FITS_HEADERS_Print( image );
   }
   
-  if ( optionO ) {
+  
+  if ( flagExport ) {
 
-	  strcpy(pngfilename,filename);
-	  strcat(pngfilename,".png");
-	  FITS_topng ( image , pngfilename);
+	  if ( strncmp(exportFormat,"png",strlen("png")) == 0 ) { 
+		FITS_topng ( image , filename);
+	  }
+	  else {
+		fprintf(stderr, "ERROR::: Export format : %s not supported\n",exportFormat);
+		exit(EXIT_FAILURE);
+	  }
   }
   
-  if ( optionI ) {
-	FITS_IMAGE_print_data( image );
-  }
+
 
 }

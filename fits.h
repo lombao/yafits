@@ -59,6 +59,7 @@ typedef struct {
 	uint8_t decvel;
 	uint32_t exptime;
 	uint32_t exposure;
+	uint16_t velignt;
 	double altitude;
 	double azimuth;
 	double ha;
@@ -66,7 +67,11 @@ typedef struct {
 	double dec;
 	double dectel;
 	double ratel;	
+	double priority;
 	int blank;
+	char fullsize[FITS_HEADER_LINE_SIZE];	
+	char epoch[FITS_HEADER_LINE_SIZE];
+	char extend[FITS_HEADER_LINE_SIZE];
 	char frameid[FITS_HEADER_LINE_SIZE];
 	char istracki[FITS_HEADER_LINE_SIZE];
 	char radecsys[FITS_HEADER_LINE_SIZE];

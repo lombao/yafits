@@ -130,7 +130,13 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 								  else {
 									  if (strcmp(key,"EXPOSURE") == 0 ) {  image->hdu.exposure = atoi(val); }
 									  else {	
-									     printf("Unknown header %s\n",key);
+										 if (strcmp(key,"EXTEND") == 0 ) {  strcpy(image->hdu.extend,val); } 
+										 else {
+											if (strcmp(key,"EPOCH") == 0 ) {  strcpy(image->hdu.epoch,val); } 
+											else {
+												printf("Unknown header %s\n",key);
+											}
+										 }
 									  }
 								  }
 							  }
@@ -144,7 +150,10 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 							  else {
 								  if (strcmp(key,"FRAMEID") == 0 ) { strcpy(image->hdu.frameid,val); }
 								  else {
-								   printf("Unknown header %s\n",key);  
+									if (strcmp(key,"FULLSIZE") == 0 ) { strcpy(image->hdu.fullsize,val); }	  
+									else {
+										printf("Unknown header %s\n",key);  
+									}
 								  }
 							  }
 						  }
@@ -194,7 +203,10 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 						  
 				case 'P': if (strcmp(key,"PROGNAME") == 0 ) { strcpy(image->hdu.origin,val); }
 						  else {
+							 if (strcmp(key,"PRIORITY") == 0 ) { image->hdu.priority = atol(val); }
+							 else {
 							     printf("Unknown header %s\n",key);
+							 }
 						  }
 						  break;
 						  
@@ -229,6 +241,13 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 							     printf("Unknown header %s\n",key);
 						  }
 							 
+						  break;
+						  
+						  
+				case 'V': if (strcmp(key,"VELIGNT") == 0 ) { image->hdu.velignt = atoi(val); }
+						  else {
+							     printf("Unknown header %s\n",key);
+						  }
 						  break;
 						  
 				case 'X': if (strcmp(key,"XBINNING") == 0 ) { image->hdu.xbinning = atoi(val); }
@@ -266,9 +285,18 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 
 void FITS_HEADERS_Print(  TFitsImage * image ) {
 	
-	
+	printf("\n");
+	printf("  HEADER KEYS\n");
+	printf("=============================\n");
 	for(int a=0;a < image->numkeys; a++ ) {
-		printf ("HEADER --> %s\n",image->keylines[a]);
+		if ( strncmp(image->keylines[a],"END",3) == 0 ) {
+			printf ("___ HEADER --> END  ______ \n");
+		}
+		else {
+			printf ("  HEADER --> %s\n",image->keylines[a]);
+		}
+		
 	}
-	printf(" .... TOTAL: %d keys\n\n",image->numkeys);
+	printf("\n*** TOTAL: %d keys\n\n",image->numkeys);
+	printf("Not all these headers are necesarily recognized by the FITS format\n");
 }

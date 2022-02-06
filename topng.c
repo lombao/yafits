@@ -17,11 +17,14 @@
  */
  
  
+#define _GNU_SOURCE
+#include <string.h>
 
 #include <png.h>
  
 #include "fits.h"
 #include "topng.h"
+
 
 
 
@@ -49,6 +52,22 @@ void FITS_topng ( TFitsImage * image , const char * filename ) {
     Tbitmap bm;
     size_t x, y;
     int xx,yy;
+
+	/* If the size of the file name is bit too long this will not work */
+	/* To simplify, it will add .png to the new file generated */
+    char pngfilename[512];
+ 
+	strncpy(pngfilename,basename(filename),512);
+	pngfilename[500]=0x0;
+	strcat(pngfilename,".png");
+
+
+	FILE * fp = fopen (pngfilename, "wb");  
+    if (fp == NULL ) {
+		fprintf(stderr,"Error:: We cannot write this file. Permissions problem ?:: %s\n",pngfilename);
+		exit(EXIT_FAILURE);
+    }
+
 
     /* Create . */
 	bm.height = image->hdu.naxis2;
@@ -96,11 +115,6 @@ void FITS_topng ( TFitsImage * image , const char * filename ) {
     int pixel_size = 3;
     int depth = 8;
     
-	FILE * fp = fopen (filename, "wb");  
-    if (fp == NULL ) {
-		fprintf(stderr,"Error:: We cannot write this file. Permissions problem ?:: %s\n",filename);
-		exit(EXIT_FAILURE);
-    }
 
     png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);    
     info_ptr = png_create_info_struct (png_ptr);
