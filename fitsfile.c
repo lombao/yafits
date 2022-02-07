@@ -67,7 +67,6 @@ TFitsImage * FITS_File_Image_Upload( const char * filename ) {
 	}
 	
 	
-	image->nstars = 0;
 	image->pixelavg = 0;
 	image->pixelmax = 0;
 	

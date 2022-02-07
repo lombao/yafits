@@ -1,5 +1,4 @@
-# YAFITS
-## Yet Another FITS package
+# YAFITS (  Yet Another FITS package )
 
 This is a "naive" attempt to built my own FITS package to process 
 astrophotography images. 
@@ -11,7 +10,7 @@ please do so at cesar dot lombao at gmail dot com
 
 ## Compiling
 
-Just clone the repo
+Just clone the repo and:
 
 > make all
 
@@ -31,4 +30,10 @@ run.
 
 ```
 ./yafits --headers 340078.fits
+```
+
+### To count the number of stars
+
+```
+./yafits --stars 340078.fits
 ```

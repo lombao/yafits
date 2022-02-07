@@ -105,12 +105,10 @@ void FITS_IMAGE_print_data(  TFitsImage * image ) {
 	printf("Pixel Max Value: %d\n",image->pixelmax);
 	printf("Flip orientation %s\n",image->hdu.flipstat);
 	printf("Exposure %d\n",image->hdu.exptime);
-	printf("Number of stars in image detected: %d\n",image->nstars);
 	printf("Star Center Lux: %d\n",image->starcenterlux);
 	printf("Star Center Max: %d\n",image->starcentermax);
 	
-	
-	
+
 }
 
 void FITS_IMAGE_Pixel_Stats( TFitsImage * image ) {
@@ -140,7 +138,6 @@ void FITS_IMAGE_Pixel_Stats( TFitsImage * image ) {
 	image->pixelmax = m;
 	image->pixelavg = (int)((double)t /  (double)(image->hdu.naxis1 * image->hdu.naxis1));
 	
-	image->nstars = FITS_Image_star_count ( image ); 
 	__FITS_Image_measure_center (  image );
 	
 	
@@ -148,7 +145,7 @@ void FITS_IMAGE_Pixel_Stats( TFitsImage * image ) {
 
 
 
-
+/**********************************************************************/
 /**********************************************************************/
 
 int FITS_Image_star_count ( TFitsImage * image ) {
