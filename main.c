@@ -29,10 +29,11 @@
 #include "fitsheader.h"
 #include "fitsdata.h"
 #include "fitsimage.h"
+#include "fitsstar.h"
 #include "topng.h"
 
 
-#define YAFITSL_VERSION "0.0.3"
+#define YAFITSL_VERSION "0.0.4"
 
 #define MAX_SIZE_FILE_NAME 512
 
@@ -52,6 +53,8 @@ void showUsage() {
 	 fprintf(stderr,"	[-e|--export] <format>:  Export the image into one of these formats: [ png ]\n");
 	 fprintf(stderr,"	[-H|--headers]        :  Dump all the header keys of the primary Header Unit\n");
 	 fprintf(stderr,"	[-S|--stars]          :  Count how many starts in the picture\n"); 
+	 fprintf(stderr,"	[-C|--spotcenterstar] :  Gives the coordinates of the brightest star closest to the center of the image\n"); 
+	 
 	 fprintf(stderr,"	<fitsfile>            :  The files file to process\n");
 	 
 	 	 fprintf(stderr,"\n\n");
@@ -80,18 +83,21 @@ int main(int argc, char *argv[]) {
   int flagExport = 0;
   int flagHeaders = 0;
   int flagStars = 0;
+  int flagCenterStar = 0;
   	
   struct option longopts[] = {
    { "export",      required_argument,		NULL,   	'e'   },
    { "help",    	no_argument,       		NULL,    	'h'  },
    { "headers",    	no_argument,       		NULL,    	'H'  },
    { "stars",    	no_argument,       		NULL,    	'S'  },
+   { "spotcenterstar",    	no_argument,       		NULL,    	'C'  },
+   
    
    { 0, 0, 0, 0 }
   };
   	
   	
-	while ((opt = getopt_long(argc, argv, "HShe:",longopts,NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "CHShe:",longopts,NULL)) != -1) {
         switch (opt) {
    
         case 'h': /* Show Help & version and quit */
@@ -104,6 +110,10 @@ int main(int argc, char *argv[]) {
             
         case 'S': /* Dump Headers */
             flagStars = 1;
+            break;
+            
+        case 'C': /* Dump Headers */
+            flagCenterStar = 1;
             break;
          
         case 'e': /*Export */
@@ -165,6 +175,18 @@ int main(int argc, char *argv[]) {
 	printf("==============================\n");
 	printf("There are %d stars \n",FITS_Image_star_count ( image ));
   }
+  
+  
+  if ( flagCenterStar ) {
+	printf("\nCOORDINATES OF CENTER STAR\n");
+	printf("==============================\n");
+	int x; int y;
+	FITS_Star_spot_center ( image, &x, &y );
+	printf("The image has a resolution of %d , %d pixels\n",image->hdu.naxis1,image->hdu.naxis2);
+	printf("There brightest star around the center is at: %d , %d  ( Cartesian coordinates )\n",x,y);
+	printf("If the image is transferred to PNG or JPG format the coordinates will be: %d , %d\n\n",x, image->hdu.naxis2-y );
+  }
+  
   
   
   if ( flagExport ) {

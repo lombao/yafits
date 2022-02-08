@@ -26,12 +26,9 @@
 
 /**********************************************************************/
 /* Internal functions                                                 */
-uint32_t _FITS_Image_Read_Pixel( TFitsImage * image, int x, int y );
-void     _FITS_Image_Write_Pixel( TFitsImage * image, int x, int y, uint32_t val );
+
 TFitsImage * __FITS_Image_Duplicate( TFitsImage * image );
 uint32_t __FITS_recursive_clean_star ( TFitsImage * image, int x, int y );
-void __FITS_Image_measure_center (  TFitsImage * image );
-
 
 
 /**********************************************************************/
@@ -95,22 +92,6 @@ void FITS_IMAGE_crop_image(  TFitsImage * image ) {
 
 
 
-void FITS_IMAGE_print_data(  TFitsImage * image ) {
-	
-	printf("***********************************************\n");
-	printf("Number of headers: %d\n",image->nhdus);
-	printf("Resolution: %d x %d \n",image->hdu.naxis1,image->hdu.naxis2);
-	printf("Bitx depth: %d\n",image->hdu.bitpix); 
-	printf("Pixel Avg Value: %d\n",image->pixelavg);
-	printf("Pixel Max Value: %d\n",image->pixelmax);
-	printf("Flip orientation %s\n",image->hdu.flipstat);
-	printf("Exposure %d\n",image->hdu.exptime);
-	printf("Star Center Lux: %d\n",image->starcenterlux);
-	printf("Star Center Max: %d\n",image->starcentermax);
-	
-
-}
-
 void FITS_IMAGE_Pixel_Stats( TFitsImage * image ) {
 	
 	uint32_t k = 0;
@@ -138,7 +119,7 @@ void FITS_IMAGE_Pixel_Stats( TFitsImage * image ) {
 	image->pixelmax = m;
 	image->pixelavg = (int)((double)t /  (double)(image->hdu.naxis1 * image->hdu.naxis1));
 	
-	__FITS_Image_measure_center (  image );
+
 	
 	
 }
@@ -156,7 +137,7 @@ int FITS_Image_star_count ( TFitsImage * image ) {
 	int starcount = 0;
 	for( int y=0; y<newimage->hdu.naxis2 ; y++ ) {
 		for( int x=0; x<newimage->hdu.naxis1 ; x++ ) {
-			uint32_t p = _FITS_Image_Read_Pixel( newimage,x,y);
+			uint32_t p = FITS_Image_Read_Pixel( newimage,x,y);
 			if ( p > newimage->pixelavg ) {
 				__FITS_recursive_clean_star ( newimage, x, y ); 
 				starcount++;
@@ -177,13 +158,13 @@ uint32_t __FITS_recursive_clean_star ( TFitsImage * image, int x, int y ) {
 	uint32_t p;
 	uint32_t k;
 	
-	p = _FITS_Image_Read_Pixel( image, x, y );
+	p = FITS_Image_Read_Pixel( image, x, y );
     k = p;
     
     	
 	if ( p > image->pixelavg ) {
 	
-		_FITS_Image_Write_Pixel(image,x,y,0);
+		FITS_Image_Write_Pixel(image,x,y,0);
 		
 		if ( x+1 < image->hdu.naxis1 )  							{ k += __FITS_recursive_clean_star( image, x+1,y); }
 		if ( x -1 > 0  )                							{ k += __FITS_recursive_clean_star( image, x-1,y); }
@@ -204,33 +185,7 @@ uint32_t __FITS_recursive_clean_star ( TFitsImage * image, int x, int y ) {
 	
 }
 
-/**********************************************************************/
-void __FITS_Image_measure_center (  TFitsImage * image ) {
-	
-	
-	
-	TFitsImage * newimage =  __FITS_Image_Duplicate( image );
-	
-	int x = image->hdu.naxis1/2;
-	int y = image->hdu.naxis2/2;
-	
-	uint32_t p = 0;
-	uint32_t r = 0;
-	int coordx = 0,coordy = 0;
 
-	#define AROUND 60
-
-    for ( int z = y-AROUND; z < y+AROUND ; z ++ ) {
-		for ( int h = x-AROUND; h < x+AROUND ; h ++ ) {				
-			p = _FITS_Image_Read_Pixel( newimage,h,z);
-			if ( p > r ) { coordx = h ; coordy = z ; r = p ; }
-		}
-	}
-			
-
-	image->starcenterlux =  __FITS_recursive_clean_star ( newimage, coordx,coordy );
-	image->starcentermax = r;
-}
 
 
 /**********************************************************************/
@@ -261,7 +216,7 @@ TFitsImage * __FITS_Image_Duplicate( TFitsImage * image ) {
 
 
 /**********************************************************************/
-uint32_t _FITS_Image_Read_Pixel( TFitsImage * image, int x, int y ) {
+uint32_t FITS_Image_Read_Pixel( TFitsImage * image, int x, int y ) {
 	
 	
 	uint32_t p;
@@ -282,7 +237,7 @@ uint32_t _FITS_Image_Read_Pixel( TFitsImage * image, int x, int y ) {
 }
 
 
-void _FITS_Image_Write_Pixel( TFitsImage * image, int x, int y, uint32_t val ) {
+void FITS_Image_Write_Pixel( TFitsImage * image, int x, int y, uint32_t val ) {
 	
 		
 	switch( image->hdu.bitpix ) {

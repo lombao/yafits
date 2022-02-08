@@ -16,27 +16,33 @@
  *
  */
  
+
+#include "fitsimage.h"
+#include "fitsstar.h" 
  
-#ifndef _FITS_IMAGE_H
-#define _FITS_IMAGE_H
+ 
+/**********************************************************************/
+/* Given an image it will try to locate the brightest start around the 
+ * center of the image */
+void FITS_Star_spot_center (  TFitsImage * image, int * thex, int * they ) {
+		
+	int x = image->hdu.naxis1/2;
+	int y = image->hdu.naxis2/2;
+	
+	uint32_t p = 0;	uint32_t r = 0;
+	int coordx = 0,coordy = 0;
 
+	#define AROUND 80
 
+    for ( int z = y-AROUND; z < y+AROUND ; z ++ ) {
+		for ( int h = x-AROUND; h < x+AROUND ; h ++ ) {				
+			p = FITS_Image_Read_Pixel( image,h,z);
+			if ( p > r ) { coordx = h ; coordy = z ; r = p ; }
+		}
+	}
+			
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
+	*thex = coordx;
+	*they = coordy;
 
-#include "fits.h"
-
-
-void FITS_IMAGE_crop_image(  TFitsImage * image );
-void FITS_IMAGE_Pixel_Stats( TFitsImage * image );
-
-
-uint32_t FITS_Image_Read_Pixel( TFitsImage * image, int x, int y );
-void     FITS_Image_Write_Pixel( TFitsImage * image, int x, int y, uint32_t val );
-
-int FITS_Image_star_count ( TFitsImage * image );
-
-#endif
+}

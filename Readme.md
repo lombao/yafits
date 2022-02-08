@@ -36,4 +36,22 @@ run.
 
 ```
 ./yafits --stars 340078.fits
+
+STARS
+==============================
+There are 654 stars 
+
+```
+
+### To get the coordinates of the center star
+
+```
+[]$ ./yafits --spotcenterstar /tmp/340078.fits
+
+COORDINATES OF CENTER STAR
+==============================
+The image has a resolution of 1536 , 1536 pixels
+There brightest star around the center is at: 764 , 721  ( Cartesian coordinates )
+If the image is transferred to PNG or JPG format the coordinates will be: 764 , 815
+
 ```

@@ -109,8 +109,7 @@ typedef struct {
 	uint32_t pixelavg;
 	uint32_t pixelmax;
 	
-	uint32_t starcenterlux;
-	uint32_t starcentermax;
+
 	
 } TFitsImage;
 
