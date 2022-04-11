@@ -1,18 +1,30 @@
 # YAFITS (  Yet Another FITS package )
 
 This is a "naive" attempt to built my own FITS package to process 
-astrophotography images. 
+astrophotography images in my Linux box. 
 
 This is a very much work in progress, if you want to make any suggestions
 please do so at cesar dot lombao at gmail dot com
 
+The inspiration to build this came from the fantastic OU course "Astronomy
+with an online telescope:
+https://www.open.edu/openlearn/science-maths-technology/astronomy/astronomy-online-telescope". 
+I cannot praise enough OpenUniversity for such fantastic free resource.
 
 
 ## Compiling
 
 Just clone the repo and:
 
-> make all
+> ./autogen.sh
+> ./configure
+> ./make ; sudo ./make install
+
+If you want install in a different place than /usr/local just use "prefix"
+in the configure
+
+> ./configure --prefix=/yourpreferredlocation
+
 
 
 ## How to use it
