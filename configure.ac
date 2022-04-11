@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([yafits], [0.0.1], [cesar.lombao@gmail.com])
+AC_INIT([yafits], [0.0.5], [cesar.lombao@gmail.com])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -29,13 +29,13 @@ AC_OUTPUT
 
 echo "
 	YAFITS ${VERSION} has been configured for compilation
-	It will be built into PREFIX: ${prefix}
+	It will be built into PREFIX: ${bindir}
 	
 	The configuration is:
 	  LIBPNG_LIBS: ${LIBPNG_LIBS}
           LIBPNG_CFLAGS: ${LIBPNG_CFLAGS}
-          PREFIX: ${PREFIX}
-          
+          PREFIX: ${prefix}
+          VERSION: ${VERSION}          
           	
 	Now you can :
 	 make

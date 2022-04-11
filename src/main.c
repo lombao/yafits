@@ -33,7 +33,6 @@
 #include "topng.h"
 
 
-#define YAFITSL_VERSION "0.0.4"
 
 #define MAX_SIZE_FILE_NAME 512
 
@@ -47,7 +46,7 @@ void showUsage();
 void showUsage() {
 	  
 	  
-	 fprintf(stderr,"\nYet Another FITS Library. Version %s\n",YAFITSL_VERSION); 
+	 fprintf(stderr,"\nYet Another FITS Library. Version %s\n",YAFITS_VERSION); 
 	 fprintf(stderr,"Usage: yafits [-h|--help] [-e|--export <format>] [-H|--headers] [-S|--stars]  <fitsfile>  \n");
 	 fprintf(stderr,"	[-h|--help]           :  Show this Help \n");
 	 fprintf(stderr,"	[-e|--export] <format>:  Export the image into one of these formats: [ png ]\n");

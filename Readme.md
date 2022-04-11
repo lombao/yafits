@@ -12,22 +12,43 @@ https://www.open.edu/openlearn/science-maths-technology/astronomy/astronomy-onli
 I cannot praise enough OpenUniversity for such fantastic free resource.
 
 
+
+
 ## Compiling
 
 Just clone the repo and:
 
-> ./autogen.sh
-> ./configure
-> ./make ; sudo ./make install
+```
+git clone https://github.com/lombao/yafits.git
+cd yafits
+./autogen.sh
+./configure
+./make ; sudo make install
+```
 
 If you want install in a different place than /usr/local just use "prefix"
 in the configure
 
-> ./configure --prefix=/yourpreferredlocation
-
+```
+./configure --prefix=/yourpreferredlocation
+```
 
 
 ## How to use it
+
+```
+[lombao@fedora yafits]$ yafits -h
+
+Yet Another FITS Library. Version 0.0.4
+Usage: yafits [-h|--help] [-e|--export <format>] [-H|--headers] [-S|--stars]  <fitsfile>  
+	[-h|--help]           :  Show this Help 
+	[-e|--export] <format>:  Export the image into one of these formats: [ png ]
+	[-H|--headers]        :  Dump all the header keys of the primary Header Unit
+	[-S|--stars]          :  Count how many starts in the picture
+	[-C|--spotcenterstar] :  Gives the coordinates of the brightest star closest to the center of the image
+	<fitsfile>            :  The files file to process
+```
+
 
 ### To export a FITS image into a PNG image
 ```
