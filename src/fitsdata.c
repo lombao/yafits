@@ -27,29 +27,27 @@ void FITS_Data_Parse(  TFitsImage * image ) {
 	
 	/* https://archive.stsci.edu/fits/users_guide/node21.html#eq:bscal */
 	
-	int initdatapos=FITS_HEADER_UNIT_CHUNK * image->nhdus;
-	int c = 0;
+	int initdatapos=FITS_HEADER_UNIT_CHUNK * image->headerblocks;
+
      
-	image->payload = (uint8_t *) malloc ( (sizeof(uint8_t)) * (image->file_size - (FITS_HEADER_UNIT_CHUNK*image->nhdus) )  );
+    /* Each "image" is a channel, possibly with its own filter */
+    /* We allocate mem for each one */
+    for(int ax=0;ax<image->nchannels;ax++) { 
+		image->channel[ax] = (uint16_t *) malloc ( (sizeof(uint16_t)) * image->resx * image->resy * (image->bitpix/16)  );
+	}
 	
 	uint16_t w;
 	int a = initdatapos;
+
 	
-	while( a < image->file_size ) {
-		switch ( image->hdu.bitpix ) {
-			case 8:	image->payload[c++] = image->buffer[a++] * image->hdu.bscale + image->hdu.bzero;
-					    break;
-			case 16:  w = (uint16_t)((uint16_t)image->buffer[a] << 8 | image->buffer[a+1]) * image->hdu.bscale + image->hdu.bzero;
-						*((uint16_t *) &(image->payload[c]) ) = w;
-						a++ ; a++; c++; c++;
-						break;
-		    case 32:  	fprintf(stderr,"Unsupported:: 32 bits depth is not supported yet, sorry. Contact the author if you would like this feature implemented \n" );
-						exit(EXIT_FAILURE);	
-						break;
-			default:    fprintf(stderr,"Unsupported:: This Bit Depth: %d is not supported yet, sorry. Contact the author if you would like this feature implemented \n",  image->hdu.bitpix);
-						exit(EXIT_FAILURE);	
-						break;
+	for(int ax=0;ax<image->nchannels;ax++) { 	
+		for(int px=0;px < (image->resx * image->resy) ; px++ ) { 
+			w = (uint16_t)((uint16_t)image->buffer[a] << 8 | image->buffer[a+1]) * image->hdu.bscale + image->hdu.bzero;
+			image->channel[ax][px] = w;
+			a++ ; a++; /* the buffer image is 8 bits, so we move the pointer twice */	
 		}
+		
 	}
+	
 
 }

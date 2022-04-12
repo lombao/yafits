@@ -30,7 +30,7 @@
 #include "fits.h"
 
 extern void FITS_Header_Parse(  TFitsImage * image );
-void FITS_HEADERS_Print(  TFitsImage * image );
+void FITS_HEADERS_Dump(  TFitsImage * image );
 
 
 #endif

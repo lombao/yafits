@@ -36,7 +36,7 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 	/* Defaults */
 	image->hdu.bscale = 1;
 	image->numkeys = 0;
-	image->nhdus = 0;
+	image->headerblocks = 0;
 	
 	/* */
 	int flag_end = 0;
@@ -64,12 +64,13 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 				while(val[h]==' ') { val[h]=0x0; h--; }
 			}
 			
-			image->keylines[ image->numkeys ]  = malloc( sizeof(char) * (strlen(key) + strlen(val) + 3 + 1) );
 			
-			strcpy( image->keylines[ image->numkeys ] , key );
-			strcat( image->keylines[ image->numkeys ] , " = " );
-			strcat( image->keylines[ image->numkeys ] , val );
-			image->keylines[ image->numkeys ][ strlen(key) + strlen(val) + 3 ] = 0x0;
+			image->key[ image->numkeys ] =  malloc( sizeof(char) * (strlen(key) + 1) );
+			image->value[ image->numkeys ] =  malloc( sizeof(char) * (strlen(val) + 1) );
+			
+			strcpy( image->key[ image->numkeys ] , key );
+			strcpy( image->value[ image->numkeys ] , val );
+			
 			image->numkeys++;
 			
 			switch( key[0] ) {
@@ -86,11 +87,16 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 						  }
 						  break;
 						  
-				case 'B': if (strcmp(key,"BITPIX") == 0 ) { image->hdu.bitpix = atoi(val); }	
+				case 'B': if (strcmp(key,"BITPIX") == 0 ) { image->hdu.bitpix = atoi(val); image->bitpix = atoi(val); 
+					                                        if ( atoi(val) != 16 ) {  
+																                     fprintf(stderr,"Error:: Unsupported BITPX: %d. Sorry. only 16 bits per pixel is supported\n",atoi(val));
+					                                                                 exit(EXIT_FAILURE); 
+					                                                                } 
+					                                      }	
 						  else {
-					  			if (strcmp(key,"BZERO") == 0 ) { image->hdu.bzero = atoi(val); }
+					  			if (strcmp(key,"BZERO") == 0 ) { image->bzero = image->hdu.bzero = atoi(val); }
 					  			else {
-									if (strcmp(key,"BSCALE") == 0 ) { image->hdu.bscale = atoi(val); }
+									if (strcmp(key,"BSCALE") == 0 ) {image->bscale =  image->hdu.bscale = atoi(val); }
 									else {
 										if (strcmp(key,"BLANK") == 0 ) { image->hdu.blank = atoi(val); }
 										else {
@@ -159,7 +165,7 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 						  }
 						  break;
 						  
-				case 'H': if (strcmp(key,"HA") == 0 ) { image->hdu.naxis = atol(val); }
+				case 'H': if (strcmp(key,"HA") == 0 ) { image->hdu.ha = atol(val); }
 					      else {
 							   printf("Unknown header %s\n",key);  
 						  }
@@ -174,13 +180,20 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 						  }
 						  break;
 						  
-				case 'N': if (strcmp(key,"NAXIS") == 0 ) { image->hdu.naxis = atoi(val); }
+				case 'N': if (strcmp(key,"NAXIS") == 0 ) {  switch  ( atoi(val) ) { case 3: image->nchannels = 3;break; case 2: image->nchannels = 1;break; 
+					                                                                default: fprintf(stderr,"Error:: Number of indexes (NAXIS)::%d is not supported, sorry\n",atoi(val));
+					                                                                         exit(EXIT_FAILURE); break;
+					                                                              }
+														}
 						  else {
-							  if (strcmp(key,"NAXIS1") == 0 ) { image->hdu.naxis1 = atoi(val); }
+							  if (strcmp(key,"NAXIS1") == 0 ) { image->resx = atoi(val); }
 							  else {
-								  if (strcmp(key,"NAXIS2") == 0 ) { image->hdu.naxis2 = atoi(val); }
+								  if (strcmp(key,"NAXIS2") == 0 ) { image->resy = atoi(val); }
 								  else {
+									  if (strcmp(key,"NAXIS3") == 0 ) { image->nchannels = atoi(val); }
+									  else {
 									     printf("Unknown header %s\n",key); 
+									 }
 								  }
 							  }
 						  }	
@@ -268,7 +281,7 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 		} /* end for */
 		
 		nheaders++;
-		if ( nheaders > FITS_MAX_NUM_HDU ) {
+		if ( nheaders >= FITS_MAX_NUM_HDU ) {
 			fprintf(stderr,"Unsupported:: This FITS file seems to have more than %d Headers ( HDU ) , or perhaps it is corrupted\n",FITS_MAX_NUM_HDU );
 			exit(EXIT_FAILURE);	
 		}
@@ -276,27 +289,30 @@ void FITS_Header_Parse(  TFitsImage * image ) {
 	} /* end of while */
 			
 	
-	image->nhdus = nheaders;
+	image->headerblocks = nheaders;
 	
 }
 
 
 /*********************************************************************/
 
-void FITS_HEADERS_Print(  TFitsImage * image ) {
+void FITS_HEADERS_Dump(  TFitsImage * image ) {
 	
 	printf("\n");
-	printf("  HEADER KEYS\n");
+	printf("FITS:             HEADER KEYS\n");
 	printf("=============================\n");
+	printf("These are the keys found in the header of this image\n");
+	printf("Please note that not all belong the to FITS spec\n\n");
+	
 	for(int a=0;a < image->numkeys; a++ ) {
-		if ( strncmp(image->keylines[a],"END",3) == 0 ) {
-			printf ("___ HEADER --> END  ______ \n");
+		
+		if ( strncmp(image->key[a],"END",3) == 0 ) {
+			printf ("END  ______ \n");
 		}
 		else {
-			printf ("  HEADER --> %s\n",image->keylines[a]);
+			printf ("%15s = %-60s\n",image->key[a],image->value[a]);
 		}
 		
 	}
 	printf("\n*** TOTAL: %d keys\n\n",image->numkeys);
-	printf("Not all these headers are necesarily recognized by the FITS format\n");
 }

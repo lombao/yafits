@@ -18,76 +18,117 @@
  
  
 
- 
+ #define _GNU_SOURCE
 #include "fits.h"
 #include "fitsimage.h"
 
 
 
 /**********************************************************************/
-/* Internal functions                                                 */
-
-TFitsImage * __FITS_Image_Duplicate( TFitsImage * image );
-uint32_t __FITS_recursive_clean_star ( TFitsImage * image, int x, int y );
-
-
-/**********************************************************************/
 /* This is useful for cases like the FITS images downloaded from
  * COAST Telescope of Open University */
-void FITS_IMAGE_crop_image(  TFitsImage * image ) {
+void FITS_IMAGE_crop_image(  TFitsImage * image, char * resize, const char * filename ) {
 	
 	
-	/* check first column and find how many consecutive 0 at the end */
-	int i;
-	switch ( image->hdu.bitpix ) {
-			case 8: 	i = image->hdu.naxis1-1;
-						while( image->payload[i] == 0 ) { i--; }
-						break;
-			case 16:	i = ( image->hdu.naxis1*( image->hdu.bitpix / 8 ) ) - 2;
-						while( *(uint16_t *)&image->payload[i] == 0 ) { i--; i--; }
-						break;
-			default: 
-					fprintf(stderr,"Internal Error:: Unexpected BIT Depth: %d",image->hdu.bitpix);
-					exit(EXIT_FAILURE);
-					break;
-	}
+	/* there is a flow in this. It does the crop independently
+	 * in each channel and then set the image resolution based on the
+	 * results of the last channel */
 	
-
-	
-    /* check the last lines to see if they can be cropped as well */
-    /* we assume the origin of coordenates bottom left */
-    uint32_t f = 0;  int j = 0;
-    while ( f < image->hdu.naxis1 ) {
-		f = 0; j++;
-		int p = image->hdu.naxis1 * ( image->hdu.naxis2-j) * ( image->hdu.bitpix / 8 );
-		for(int k=p; k < p+(image->hdu.naxis1*( image->hdu.bitpix / 8 )); k++) { f += image->payload[k]; } 
-	}
-	j = image->hdu.naxis2 - (j-1);
-	
-
 		
-	uint8_t * newpayload = (uint8_t *) malloc ( (sizeof(uint8_t)) * j* i  );
-	if ( newpayload == NULL )  {
-		fprintf(stderr,"Error:: Out of memory. We could not accomodate memory for an crop image operation\n");
-		exit(EXIT_FAILURE);
+	int a=0;
+	while( resize[a] != 0x0 && resize[a] != 'x' ) { a++; }
+	if ( resize[a]==0x0 ) { 
+     		fprintf(stderr,"Error:: The resize parameter for crop is incorrect: It must be in the form <number>x<number>: .i.e: 1200x800 \n");
+			exit(EXIT_FAILURE);
+	}
+	resize[a]=0x0;
+	int newsizex = atoi( resize );
+	int newsizey = atoi( &resize[a+1] );
+	
+	if ( newsizex > image->resx || newsizey > image->resy ) {
+		     fprintf(stderr,"Error:: The resize parameter must be equal or less than the current image resolution\n");
+			exit(EXIT_FAILURE);
 	}
 	
-	int c = 0;
-	for(int y=0;y<j;y++) {
-		for(int x=0;x<i;x++) {
-			newpayload[c++] = image->payload[ (image->hdu.naxis1 * y * ( image->hdu.bitpix / 8 )) + x ];
+	for(int cx=0;cx<image->nchannels;cx++) {
+	
+		
+		uint16_t * newpayload = (uint16_t *) malloc ( (sizeof(uint16_t)) * newsizex * newsizey  );
+		if ( newpayload == NULL )  {
+			fprintf(stderr,"Error:: Out of memory. We could not accomodate memory for an crop image operation\n");
+			exit(EXIT_FAILURE);
 		}
-	}
 	
-	image->hdu.naxis1 = i / ( image->hdu.bitpix / 8 );
-	image->hdu.naxis2 = j;
+		int c = 0;
+		for(int y=0;y<newsizey;y++) {
+			for(int x=0;x<newsizex;x++) {
+				newpayload[c++] = image->channel[cx][ (image->resx * y) + x ]  ;
+			}
+		}
+	
       
     /*free(image->payload); */
-    image->payload = newpayload;
+		image->channel[cx] = newpayload;
     
     /* I do not know why this free produces a segmentation fault */ 
 	/* free(oldpayload); */
+	}
+	
+	image->resx = newsizex;
+	image->resy = newsizey;
+	
+	
+    char newfile[512];
+	strncpy(newfile,basename(filename),512);
+	newfile[500]=0x0;
+	strcat(newfile,".new");
+	FILE * fp = fopen (newfile, "wb");  
+    if (fp == NULL ) {
+		fprintf(stderr,"Error:: We cannot write this file. Permissions problem ?:: %s\n",newfile);
+		exit(EXIT_FAILURE);
+    }
+    
+    char line[FITS_HEADER_LINE_SIZE+1];
+    char newval[FITS_HEADER_LINE_SIZE - 9];
+    char header[FITS_HEADER_LINE_SIZE+1];
+    int k=0;
+    for(int nk=0;nk<image->numkeys;nk++) {
+		if ( strcmp(image->key[nk],"NAXIS1") == 0 ) {
+			sprintf(newval," %d",image->resx);
+			sprintf(line,"%-8s= %s",image->key[nk], newval);
+		}
+		else {
+			if ( strcmp(image->key[nk],"NAXIS2") == 0 ) {
+				sprintf(newval," %d",image->resy);
+				sprintf(line,"%-8s= %s",image->key[nk], newval);
+			}
+			else {
+				sprintf(line,"%-8s= %s",image->key[nk],image->value[nk]);
+			}
+		}
+		
+		sprintf(header,"%-80s",line);
+		fwrite(header, sizeof(char), FITS_HEADER_LINE_SIZE, fp);
+		k++;
+	}
+	
+	int j = (k*FITS_HEADER_LINE_SIZE) / FITS_HEADER_UNIT_CHUNK;
+	if ( (k*FITS_HEADER_LINE_SIZE) % FITS_HEADER_UNIT_CHUNK ) { j++; }
+	
+	for(int a=(k*FITS_HEADER_LINE_SIZE); a<FITS_HEADER_UNIT_CHUNK*j;a++) {
+		fwrite(" ", sizeof(char), 1, fp);
+	}
+	
+	for(int cx=0;cx<image->nchannels;cx++) {
+		for ( int by=0;by<image->resx*image->resy;by++ ) {
+			uint16_t k =  image->channel[cx][by] - image->bzero;
+			
+			fwrite( ((uint8_t *)&k+1), sizeof(uint8_t), 1, fp);
+			fwrite( (uint8_t *)&k, sizeof(uint8_t), 1, fp);
+		}
 
+	}
+	fclose(fp);
 }
 
 
@@ -98,37 +139,61 @@ void FITS_IMAGE_Pixel_Stats( TFitsImage * image ) {
 	uint64_t t = 0;
 	uint64_t m = 0;
 	
-	switch( image->hdu.bitpix ) { 
+	
+		for(int cx=0;cx<image->nchannels;cx++) {
+			
+			for(k=0; k < image->resx * image->resy;  k++) {
+					t += image->channel[cx][ k ];
+					if ( image->channel[cx][ k ] > m ) { m = image->channel[cx][ k ]; }
+			}
 		
-		case 8:		for(k=0; k < image->hdu.naxis1 * image->hdu.naxis1 ; k++) {
-						t += image->payload[ k ];
-						if ( image->payload[ k ]  > m ) { m = image->payload[ k ]; }
-					}
-					break;
-		case 16:	for(k=0; k < image->hdu.naxis1 * image->hdu.naxis1 * 2; k+=2) {
-						t += *(uint16_t *)&image->payload[ k ];
-						if ( *(uint16_t *)&image->payload[ k ] > m ) { m = *(uint16_t *)&image->payload[ k ]; }
-					}
-					break;
-		default: 	fprintf(stderr,"Internal Error:: Unexpected BIT Depth: %d",image->hdu.bitpix);
-					exit(EXIT_FAILURE);
-					break;
-	}
-	
-	
-	image->pixelmax = m;
-	image->pixelavg = (int)((double)t /  (double)(image->hdu.naxis1 * image->hdu.naxis1));
-	
+			image->pixelmax[cx] = m;
+			image->pixelavg[cx] = (int)((double)t /  (double)(image->resx * image->resy));
 
-	
-	
+		}
+		
 }
 
 
+/**********************************************************************/
+/**********************************************************************/
+/*
+int FITS_Image_star_count ( TFitsImage * image ) {
+	
+		for(cx=0;cx<image->nchannels;cx++) {
+			
+			newchannel = (uint16_t *) malloc ( sizeof(uint16_t) * image->resx * image->resy  );
+			memcpy(newimage,image->channel[cx], sizeof(uint16_t)  * image->resx * image->resy );
+			
+			
+			int starcount = 0;
+			for( int y=0; y< image->resy ; y++ ) {
+				for( int x=0; x< image->resx ; x++ ) {
+					uint32_t p = newchannel[ y * image->resx + x ];
+					if ( p > newimage->pixelavg ) {
+						__FITS_recursive_clean_star ( newimage, x, y ); 
+						starcount++;
+					}
+		
+				}
+			}
+			
+			
+		} 
+		
+
+	
+}
+*/
+
+
+
+
+
 
 /**********************************************************************/
 /**********************************************************************/
-
+/*
 int FITS_Image_star_count ( TFitsImage * image ) {
 	
 	TFitsImage * newimage =  __FITS_Image_Duplicate( image );
@@ -138,7 +203,7 @@ int FITS_Image_star_count ( TFitsImage * image ) {
 	for( int y=0; y<newimage->hdu.naxis2 ; y++ ) {
 		for( int x=0; x<newimage->hdu.naxis1 ; x++ ) {
 			uint32_t p = FITS_Image_Read_Pixel( newimage,x,y);
-			if ( p > newimage->pixelavg ) {
+			if ( p > image->pixelavg ) {
 				__FITS_recursive_clean_star ( newimage, x, y ); 
 				starcount++;
 			}
@@ -185,11 +250,12 @@ uint32_t __FITS_recursive_clean_star ( TFitsImage * image, int x, int y ) {
 	
 }
 
-
+*/
 
 
 /**********************************************************************/
 /* returns a new image duplicating the original */
+/*
 TFitsImage * __FITS_Image_Duplicate( TFitsImage * image ) {
 	
 	
@@ -209,13 +275,14 @@ TFitsImage * __FITS_Image_Duplicate( TFitsImage * image ) {
 }
 
 
-
+*/
 
 
 
 
 
 /**********************************************************************/
+/*
 uint32_t FITS_Image_Read_Pixel( TFitsImage * image, int x, int y ) {
 	
 	
@@ -252,3 +319,4 @@ void FITS_Image_Write_Pixel( TFitsImage * image, int x, int y, uint32_t val ) {
 	
 	
 }
+*/

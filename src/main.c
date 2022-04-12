@@ -29,12 +29,13 @@
 #include "fitsheader.h"
 #include "fitsdata.h"
 #include "fitsimage.h"
-#include "fitsstar.h"
 #include "topng.h"
 
 
 
 #define MAX_SIZE_FILE_NAME 512
+#define MAX_LEN_PARAM_CROPSIZE 20
+
 
 // LOCAL DEFINED FUNCTIONS
 void showUsage();
@@ -48,12 +49,10 @@ void showUsage() {
 	  
 	 fprintf(stderr,"\nYet Another FITS Library. Version %s\n",YAFITS_VERSION); 
 	 fprintf(stderr,"Usage: yafits [-h|--help] [-e|--export <format>] [-H|--headers] [-S|--stars]  <fitsfile>  \n");
-	 fprintf(stderr,"	[-h|--help]           :  Show this Help \n");
-	 fprintf(stderr,"	[-e|--export] <format>:  Export the image into one of these formats: [ png ]\n");
 	 fprintf(stderr,"	[-H|--headers]        :  Dump all the header keys of the primary Header Unit\n");
-	 fprintf(stderr,"	[-S|--stars]          :  Count how many starts in the picture\n"); 
-	 fprintf(stderr,"	[-C|--spotcenterstar] :  Gives the coordinates of the brightest star closest to the center of the image\n"); 
-	 
+	 fprintf(stderr,"	[-h|--help]           :  Show this Help \n");
+	 fprintf(stderr,"	[-e|--export]         :  Export the image into PNG16 bits RGB \n");
+	 fprintf(stderr,"	[-c|--crop] <sizex>x<sizey> :  Crop the image to sizex by sizey ( .i.e: 1340x1340 ) \n"); 
 	 fprintf(stderr,"	<fitsfile>            :  The files file to process\n");
 	 
 	 	 fprintf(stderr,"\n\n");
@@ -71,32 +70,27 @@ int main(int argc, char *argv[]) {
   int opt;
 
   char filename[MAX_SIZE_FILE_NAME];
-
+  char cropsize[MAX_LEN_PARAM_CROPSIZE];
   
-  #define MAX_EXPORT_FORMAT_NAME 10
-  char exportFormat[MAX_EXPORT_FORMAT_NAME];
-  
+    
   TFitsImage * image;
   
   int flagHelp = 0;	
   int flagExport = 0;
   int flagHeaders = 0;
-  int flagStars = 0;
-  int flagCenterStar = 0;
+  int flagCrop = 0;
   	
   struct option longopts[] = {
-   { "export",      required_argument,		NULL,   	'e'   },
+   { "export",      no_argument,		NULL,   	'e'  },
    { "help",    	no_argument,       		NULL,    	'h'  },
    { "headers",    	no_argument,       		NULL,    	'H'  },
-   { "stars",    	no_argument,       		NULL,    	'S'  },
-   { "spotcenterstar",    	no_argument,       		NULL,    	'C'  },
-   
+   { "crop",    	required_argument,   	NULL,    	'c'  },
    
    { 0, 0, 0, 0 }
   };
   	
   	
-	while ((opt = getopt_long(argc, argv, "CHShe:",longopts,NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "c:Hhe",longopts,NULL)) != -1) {
         switch (opt) {
    
         case 'h': /* Show Help & version and quit */
@@ -106,26 +100,25 @@ int main(int argc, char *argv[]) {
         case 'H': /* Dump Headers */
             flagHeaders = 1;
             break;
-            
-        case 'S': /* Dump Headers */
-            flagStars = 1;
-            break;
-            
-        case 'C': /* Dump Headers */
-            flagCenterStar = 1;
-            break;
-         
+
         case 'e': /*Export */
 			flagExport = 1;
-			strncpy(exportFormat,optarg,MAX_EXPORT_FORMAT_NAME);
-			exportFormat[MAX_EXPORT_FORMAT_NAME-1]=0x0;
+			break;
+			
+		case 'c': /* Crop */
+			flagCrop = 1;
+			strncpy(cropsize,optarg,MAX_LEN_PARAM_CROPSIZE);
+			cropsize[MAX_LEN_PARAM_CROPSIZE-1]=0x0;
+			if ( cropsize[0] < '0' || cropsize[0] > '9'  ) { 
+				fprintf(stderr,"Error:: The resize parameter for crop is incorrect: It must be in the form <number>x<number>: .i.e: 1200x800 \n");
+				exit(EXIT_FAILURE);
+			}
 			break;
 				
 		case ':':   /* missing option argument */
 			fprintf(stderr, "ERROR: option `-%c' requires an argument\n", optopt);
 			exit(EXIT_FAILURE);
 			break;
-		
 		
 		
 		case '?':
@@ -158,46 +151,25 @@ int main(int argc, char *argv[]) {
   /* Upload and pre-process the image */
   image = FITS_File_Image_Upload(filename);
   FITS_Header_Parse ( image );
-  FITS_Data_Parse(  image );
-  FITS_IMAGE_crop_image(  image );
-  FITS_IMAGE_Pixel_Stats( image );
+  FITS_Data_Parse(  image ); 
+  /* FITS_IMAGE_Pixel_Stats( image ); */
   
   
-  
+ 
   if ( flagHeaders ) {
-	  FITS_HEADERS_Print( image );
+	  FITS_HEADERS_Dump( image );
+  }
+    
+  
+  if ( flagCrop ) {
+	  FITS_IMAGE_crop_image( image, cropsize , filename );
   }
   
-  
-  if ( flagStars ) {
-	printf("\nSTARS\n");
-	printf("==============================\n");
-	printf("There are %d stars \n",FITS_Image_star_count ( image ));
-  }
-  
-  
-  if ( flagCenterStar ) {
-	printf("\nCOORDINATES OF CENTER STAR\n");
-	printf("==============================\n");
-	int x; int y;
-	FITS_Star_spot_center ( image, &x, &y );
-	printf("The image has a resolution of %d , %d pixels\n",image->hdu.naxis1,image->hdu.naxis2);
-	printf("There brightest star around the center is at: %d , %d  ( Cartesian coordinates )\n",x,y);
-	printf("If the image is transferred to PNG or JPG format the coordinates will be: %d , %d\n\n",x, image->hdu.naxis2-y );
-  }
-  
-  
-  
-  if ( flagExport ) {
-
-	  if ( strncmp(exportFormat,"png",strlen("png")) == 0 ) { 
+  if ( flagExport ) {	 
 		FITS_topng ( image , filename);
-	  }
-	  else {
-		fprintf(stderr, "ERROR::: Export format : %s not supported\n",exportFormat);
-		exit(EXIT_FAILURE);
-	  }
   }
+  
+  
   
 
 

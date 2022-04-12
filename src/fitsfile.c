@@ -21,9 +21,10 @@
 #include "fitsfile.h"
 
 
-
-
-
+/* FITS FILE
+ * This is only to handle files
+ * IT does not make any interpretation of the contents
+ */
 
 TFitsImage * FITS_File_Image_Upload( const char * filename ) {
 
@@ -66,10 +67,7 @@ TFitsImage * FITS_File_Image_Upload( const char * filename ) {
 		exit(EXIT_FAILURE);	
 	}
 	
-	
-	image->pixelavg = 0;
-	image->pixelmax = 0;
-	
+		
 	
 	return image;
 	

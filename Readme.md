@@ -37,26 +37,25 @@ in the configure
 ## How to use it
 
 ```
-[lombao@fedora yafits]$ yafits -h
+$ yafits -h
 
-Yet Another FITS Library. Version 0.0.4
+Yet Another FITS Library. Version 0.0.6
 Usage: yafits [-h|--help] [-e|--export <format>] [-H|--headers] [-S|--stars]  <fitsfile>  
-	[-h|--help]           :  Show this Help 
-	[-e|--export] <format>:  Export the image into one of these formats: [ png ]
 	[-H|--headers]        :  Dump all the header keys of the primary Header Unit
-	[-S|--stars]          :  Count how many starts in the picture
-	[-C|--spotcenterstar] :  Gives the coordinates of the brightest star closest to the center of the image
+	[-h|--help]           :  Show this Help 
+	[-e|--export]         :  Export the image into PNG16 bits RGB 
+	[-c|--crop] <sizex>x<sizey> :  Crop the image to sizex by sizey ( .i.e: 1340x1340 ) 
 	<fitsfile>            :  The files file to process
+
 ```
 
 
 ### To export a FITS image into a PNG image
 ```
-./yafits --export png tmp/340078.fits
+./yafits --export tmp/340078.fits
 ```
 
-This command will create the file "340078.fits.png" where the yafits is 
-run.
+This command will create the file "340078.fits.png" 
 
 
 ### To show all header Keys
@@ -65,26 +64,14 @@ run.
 ./yafits --headers 340078.fits
 ```
 
-### To count the number of stars
+### To crop the FITS image to a new size
 
 ```
-./yafits --stars 340078.fits
-
-STARS
-==============================
-There are 654 stars 
+./yafits --crop 1300x1300 340078.fits
 
 ```
 
-### To get the coordinates of the center star
+This will not modify the original file, but 
+it will create a new file named 340078.fits.new
+Rename it if you are happy with the result
 
-```
-[]$ ./yafits --spotcenterstar /tmp/340078.fits
-
-COORDINATES OF CENTER STAR
-==============================
-The image has a resolution of 1536 , 1536 pixels
-There brightest star around the center is at: 764 , 721  ( Cartesian coordinates )
-If the image is transferred to PNG or JPG format the coordinates will be: 764 , 815
-
-```

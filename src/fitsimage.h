@@ -30,13 +30,10 @@
 #include "fits.h"
 
 
-void FITS_IMAGE_crop_image(  TFitsImage * image );
+void FITS_IMAGE_crop_image(  TFitsImage * image, char * resize, const char * filename  );
+
 void FITS_IMAGE_Pixel_Stats( TFitsImage * image );
 
 
-uint32_t FITS_Image_Read_Pixel( TFitsImage * image, int x, int y );
-void     FITS_Image_Write_Pixel( TFitsImage * image, int x, int y, uint32_t val );
-
-int FITS_Image_star_count ( TFitsImage * image );
 
 #endif

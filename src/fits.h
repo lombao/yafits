@@ -23,6 +23,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 
@@ -40,6 +41,10 @@
 #define FITS_MAX_NUM_KEYS 100
 
 
+/* The max of Channels */
+#define FITS_MAX_CHANNELS 20
+
+
 /*
  * See: https://fits.gsfc.nasa.gov/rfc4047.txt
  * https://archive.stsci.edu/fits/users_guide/
@@ -48,9 +53,6 @@
 typedef struct {
 	char simple;
 	uint8_t bitpix;
-	uint8_t naxis;
-	uint16_t naxis1;
-	uint16_t naxis2;
 	uint32_t bzero;
 	uint8_t bscale;
 	uint8_t xbinning;
@@ -94,21 +96,35 @@ typedef struct {
 	
 } TFitsImageHeader; 
 
+
+
+
 typedef struct {
-	int nhdus;
+
 	
 	TFitsImageHeader hdu;
 	
-	char * keylines[FITS_MAX_NUM_KEYS];
-	int numkeys;
+    	int headerblocks; /* each block is 2880 bytes */
+		int numkeys;
+		char * key[FITS_MAX_NUM_KEYS];
+		char * value[FITS_MAX_NUM_KEYS];
 	
-	uint32_t file_size;     	/* size of the file */
-	uint8_t * buffer; 	/* original image frmo file */
-	uint8_t * payload; 	/* The data unit */
 	
-	uint32_t pixelavg;
-	uint32_t pixelmax;
+	uint32_t file_size;     /* size of the file */
+	uint8_t * buffer; 		/* original content from file */
 	
+	uint8_t nchannels;		/* Number of channels, this is the NAXIS3 value if NAXIES = 3, otherwise is 1 */
+	uint16_t * channel[FITS_MAX_CHANNELS]; 	/* The different "images" , there can be more than 1 */
+	
+	uint32_t pixelavg[FITS_MAX_CHANNELS];
+	uint32_t pixelmax[FITS_MAX_CHANNELS];
+	
+	uint16_t resx; /* This is naxis1 */ 
+	uint16_t resy; /* This is naxis2 */
+	
+	uint8_t bitpix;
+	uint32_t bzero;  /* The value that is zero physical_values = BZERO + BSCALE × array_value */
+	uint8_t bscale;  /* The bscale https://archive.stsci.edu/fits/fits_standard/node40.html#eq:bscl */
 
 	
 } TFitsImage;
